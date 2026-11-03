@@ -1,0 +1,14 @@
+Aviso de derechos y procedencia
+
+Este repositorio es un proyecto académico. No se concede una licencia general
+sobre el código suministrado en las prácticas del curso, cuyos derechos y avisos
+originales se conservan. Su presencia aquí no implica permiso de redistribución
+por parte de sus autores.
+
+El código y los recursos nuevos del proyecto se mantienen con todos los derechos
+reservados hasta que el titular decida una licencia. No se atribuye al profesor
+la autoría de las ampliaciones. Véase docs/PROCEDENCIA.md.
+
+stb_image conserva la licencia incluida en su propio archivo. GLFW, GLEW, GLM y
+Assimp son dependencias externas con sus respectivas licencias; no se incluyen
+sus fuentes en este repositorio.

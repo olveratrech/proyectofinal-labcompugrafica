@@ -1,0 +1,10 @@
+.DS_Store
+build/
+dist/
+*.blend1
+*.blend2
+__pycache__/
+.vscode/
+.idea/
+*.o
+*.log
