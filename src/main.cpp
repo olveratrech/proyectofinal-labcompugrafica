@@ -16,6 +16,11 @@ Camera camera(vec3(0,2.4,10),vec3(0,1,0),-90,-8);
 lab::Physics simulation;
 bool running=true,card=false,showSample=false;
 int selected=0;
+// Cada mecanismo guarda su propio destino para que ninguno bloquee a los demas.
+bool microscopeLightOn=false,microscopeFocusLow=false;
+float microscopeButton=0,microscopeLight=0;
+float microscopeFocus=0,microscopeFocusAngle=0;
+float microscopeObjectiveAngle=0,microscopeObjectiveTarget=0;
 const vec3 stations[]= {
     {
         -3.4,1.05,2
@@ -64,6 +69,25 @@ mat4 R(float angle,vec3 axis= {
 }
 ) {
     return glm::rotate(mat4(1),angle,axis);
+}
+float approach(float value,float target,float amount) {
+    if(value<target)return std::min(value+amount,target);
+    return std::max(value-amount,target);
+}
+// Igual que en la maquina de estados de la practica 9: cada destino avanza
+// con deltaTime y puede cambiar aunque las otras animaciones sigan en curso.
+void animateMicroscope(float deltaTime) {
+    microscopeButton=approach(microscopeButton,microscopeLightOn?.018f:0.f,
+                              deltaTime*.12f);
+    microscopeLight=approach(microscopeLight,microscopeLightOn?1.f:0.f,
+                             deltaTime*4.f);
+    microscopeObjectiveAngle=approach(microscopeObjectiveAngle,
+                                      microscopeObjectiveTarget,
+                                      deltaTime*glm::radians(150.f));
+    float oldFocus=microscopeFocus;
+    microscopeFocus=approach(microscopeFocus,
+                             microscopeFocusLow?-.13f:0.f,deltaTime*.12f);
+    microscopeFocusAngle+=(microscopeFocus-oldFocus)*32.f;
 }
 std::unique_ptr<Mesh> cube,quad;
 // Un cubo y un plano se reutilizan para toda la arquitectura y las fichas.
@@ -210,9 +234,16 @@ GLuint labels[7],cards[7],hud,signTexture,sampleTexture;
 void load() {
     std::ifstream in("assets/models/parts.txt");
     if(!in)throw std::runtime_error("No se encontro parts.txt");
+    const std::array<std::string,7> modelFolders= {
+        "masa_resorte","balanza","pendulo_doble","benceno",
+        "microscopio","van_de_graaff","equilibrio_fuerzas"
+    };
     Part p;
     while(in>>p.station>>p.name>>p.parent>>p.pivot.x>>p.pivot.y>>p.pivot.z) {
-        auto file="assets/models/"+std::to_string(p.station)+"_"+p.name+".obj";
+        if(p.station<0||p.station>=static_cast<int>(modelFolders.size()))
+            throw std::runtime_error("Estacion de modelo fuera de rango");
+        auto file="assets/models/"+modelFolders[p.station]+"/"+
+                  std::to_string(p.station)+"_"+p.name+".obj";
         p.model=std::make_unique<Model>(file.c_str());
         parts.push_back(std::move(p));
     }
@@ -422,16 +453,20 @@ void apparatus(Shader&s) {
         int i=p.station;
         const auto&n=p.name;
         if(i==0) {
-            float length=.85f+.14f*std::cos(t*(2.8-.4*simulation.preset));
+            // El resorte se exporta con su extremo superior en el origen local.
+            // Al escalar desde ese punto, la unión con el soporte permanece fija.
+            const float springTop=1.518701f;
+            const float restLength=.838133f;
+            const float displacement=.14f*std::cos(t*(2.8-.4*simulation.preset));
             if(n=="spring")m=T( {
-                0,1.7,0
+                0,springTop,0
             }
             )*S( {
-                1,length,1
+                1,1.0f+displacement/restLength,1
             }
             );
             if(n=="mass")m=T( {
-                0,1.7f-length,0
+                0,-displacement,0
             }
             );
         }
@@ -451,6 +486,16 @@ void apparatus(Shader&s) {
                 0,-.65,0
             }
             )*R(simulation.pendulum[1]-simulation.pendulum[0]);
+        }
+        if(i==4) {
+            if(n=="button")m=T(p.pivot+vec3(0,-microscopeButton,0));
+            if(n=="focusL")m=T(p.pivot)*R(microscopeFocusAngle,vec3(1,0,0));
+            if(n=="focusR")m=T(p.pivot)*R(-microscopeFocusAngle,vec3(1,0,0));
+            if(n=="head"||n=="eyepiece")
+                m=T(p.pivot+vec3(0,microscopeFocus,0));
+            if(n=="nosepiece"||n=="objectives")
+                m=T(p.pivot+vec3(0,microscopeFocus,0))*
+                  R(microscopeObjectiveAngle,vec3(0,1,0));
         }
         if(i==5&&n.rfind("strip",0)==0) {
             int k=std::stoi(n.substr(5));
@@ -558,6 +603,10 @@ void key(GLFWwindow*w,int k,int,int action,int) {
         simulation.preset=(simulation.preset+1)%3;
         simulation.reset();
     }
+    if(selected==4&&k==GLFW_KEY_L)microscopeLightOn=!microscopeLightOn;
+    if(selected==4&&k==GLFW_KEY_O)
+        microscopeObjectiveTarget+=glm::radians(120.f);
+    if(selected==4&&k==GLFW_KEY_F)microscopeFocusLow=!microscopeFocusLow;
     if(k==GLFW_KEY_E) {
         float best=1e6;
         for(int i=0;i<7;++i) {
@@ -633,12 +682,19 @@ void lights(Shader&s) {
         uniform(s,n+"specular",vec3(.5));
     }
     uniform(s,"spotLight.constant",1);
-    uniform(s,"spotLight.cutOff",.98);
-    uniform(s,"spotLight.outerCutOff",.95);
+    uniform(s,"spotLight.linear",1.4);
+    uniform(s,"spotLight.quadratic",2.8);
+    // La lampara nace debajo de la platina y apunta hacia la muestra.
+    uniform(s,"spotLight.position",stations[4]+vec3(0,.43,.274f));
+    uniform(s,"spotLight.cutOff",std::cos(glm::radians(16.f)));
+    uniform(s,"spotLight.outerCutOff",std::cos(glm::radians(24.f)));
     uniform(s,"spotLight.direction", {
-        0,-1,0
+        0,1,0
     }
     );
+    uniform(s,"spotLight.ambient",vec3(0));
+    uniform(s,"spotLight.diffuse",vec3(1.f,.91f,.68f)*microscopeLight);
+    uniform(s,"spotLight.specular",vec3(.65f,.58f,.42f)*microscopeLight);
 }
 void screenshot(const std::string&file,int w,int h) {
     std::vector<unsigned char>pixels(w*h*3);
@@ -705,6 +761,7 @@ int main(int argc,char**argv) {
                 simulation.step(1./240,running);
                 accumulator-=1./240;
             }
+            animateMicroscope(static_cast<float>(dt));
             if(smoke&&frame%12==0&&frame/12<7)go(frame/12);
             int width,height;
             glfwGetFramebufferSize(w,&width,&height);
