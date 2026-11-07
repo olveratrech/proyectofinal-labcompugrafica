@@ -16,6 +16,18 @@ Camera camera(vec3(0,2.4,10),vec3(0,1,0),-90,-8);
 lab::Physics simulation;
 bool running=true,card=false,showSample=false;
 int selected=0;
+enum EstadoResorte {RESORTE_REPOSO,RESORTE_ESTIRAR,RESORTE_OSCILAR};
+EstadoResorte estadoResorte=RESORTE_REPOSO;
+float desplazamientoResorte=0,tiempoResorte=0;
+bool agitarVarilla=false;
+int cuadroVarilla=0;
+float avanceVarilla=0;
+vec3 desplazamientoVarilla(0);
+bool vanDeGraaffOn=false;
+float vanButton=0,vanTravel=0,vanRoll=0,vanCarousel=0;
+enum EstadoPrisma {PRISMA_APAGADO,PRISMA_ENTRADA,PRISMA_DISPERSION,PRISMA_COMPLETO};
+EstadoPrisma estadoPrisma=PRISMA_APAGADO;
+float avanceEntrada=0,avanceEspectro=0,oscuridadLaboratorio=0;
 // Cada mecanismo guarda su propio destino para que ninguno bloquee a los demas.
 bool microscopeLightOn=false,microscopeFocusLow=false;
 float microscopeButton=0,microscopeLight=0;
@@ -46,7 +58,7 @@ const vec3 stations[]= {
 }
 ;
 const char* names[]= {
-    "Masa y resorte","Balanza","Pendulo doble","Benceno","Microscopio","Van de Graaff","Equilibrio de fuerzas"
+    "Masa y resorte","Cristalizacion","Pendulo doble","Benceno","Microscopio","Van de Graaff","Prisma de Newton"
 }
 ;
 void uniform(Shader&s,const std::string&n,vec3 v) {
@@ -74,6 +86,61 @@ float approach(float value,float target,float amount) {
     if(value<target)return std::min(value+amount,target);
     return std::max(value-amount,target);
 }
+// Maquina de estados como en la practica 9: primero se tira de la masa y luego
+// se libera. La envolvente decreciente hace visible el amortiguamiento.
+void animateSpring(float deltaTime) {
+    const float estiramiento=.18f;
+    if(estadoResorte==RESORTE_REPOSO)return;
+    if(estadoResorte==RESORTE_ESTIRAR) {
+        desplazamientoResorte=std::min(estiramiento,
+                                      desplazamientoResorte+deltaTime*.30f);
+        if(desplazamientoResorte>=estiramiento) {
+            tiempoResorte=0;
+            estadoResorte=RESORTE_OSCILAR;
+        }
+        return;
+    }
+    tiempoResorte+=deltaTime;
+    float amplitud=estiramiento*std::exp(-1.05f*tiempoResorte);
+    desplazamientoResorte=amplitud*std::cos(7.2f*tiempoResorte);
+    if(amplitud<.002f) {
+        desplazamientoResorte=0;
+        estadoResorte=RESORTE_REPOSO;
+    }
+}
+// Interpolacion entre cuadros clave siguiendo la estructura de la practica 10.
+void animateStirrer(float deltaTime) {
+    const std::array<vec3,5> cuadros={vec3(0),vec3(.045f,0,-.025f),
+        vec3(0,0,-.05f),vec3(-.045f,0,-.025f),vec3(0)};
+    if(!agitarVarilla)return;
+    avanceVarilla+=deltaTime/0.28f;
+    while(avanceVarilla>=1) {
+        avanceVarilla-=1;
+        cuadroVarilla=(cuadroVarilla+1)%4;
+    }
+    desplazamientoVarilla=glm::mix(cuadros[cuadroVarilla],
+                                   cuadros[cuadroVarilla+1],avanceVarilla);
+}
+void animateVanDeGraaff(float deltaTime) {
+    vanButton=approach(vanButton,vanDeGraaffOn?.020f:0.f,deltaTime*.14f);
+    if(!vanDeGraaffOn)return;
+    const float recorrido=2.033f-.660f;
+    vanTravel=std::fmod(vanTravel+deltaTime*.34f,recorrido);
+    vanRoll=std::fmod(vanRoll+deltaTime*3.24f,6.2831853f);
+    vanCarousel=std::fmod(vanCarousel+deltaTime*4.5f,6.2831853f);
+}
+void animatePrism(float deltaTime) {
+    oscuridadLaboratorio=approach(oscuridadLaboratorio,
+        estadoPrisma==PRISMA_APAGADO?0.f:1.f,deltaTime*1.4f);
+    if(estadoPrisma==PRISMA_ENTRADA) {
+        avanceEntrada=std::min(1.f,avanceEntrada+deltaTime*.75f);
+        if(avanceEntrada>=1)estadoPrisma=PRISMA_DISPERSION;
+    }
+    if(estadoPrisma==PRISMA_DISPERSION) {
+        avanceEspectro=std::min(1.f,avanceEspectro+deltaTime*.34f);
+        if(avanceEspectro>=1)estadoPrisma=PRISMA_COMPLETO;
+    }
+}
 // Igual que en la maquina de estados de la practica 9: cada destino avanza
 // con deltaTime y puede cambiar aunque las otras animaciones sigan en curso.
 void animateMicroscope(float deltaTime) {
@@ -89,7 +156,7 @@ void animateMicroscope(float deltaTime) {
                              microscopeFocusLow?-.13f:0.f,deltaTime*.12f);
     microscopeFocusAngle+=(microscopeFocus-oldFocus)*32.f;
 }
-std::unique_ptr<Mesh> cube,quad;
+std::unique_ptr<Mesh> cube,quad,prism,beamWedge;
 // Un cubo y un plano se reutilizan para toda la arquitectura y las fichas.
 void primitives() {
     std::vector<Vertex>v;
@@ -200,6 +267,29 @@ void primitives() {
     ,std::vector<Texture> {
     }
     );
+    // Prisma triangular sencillo, construido igual que las primitivas del curso.
+    std::vector<Vertex>pv;
+    std::vector<GLuint>pi;
+    auto triangle=[&](vec3 a,vec3 b,vec3 c) {
+        vec3 n=glm::normalize(glm::cross(b-a,c-a));
+        GLuint start=pv.size();
+        pv.push_back({a,n,{0,0}});pv.push_back({b,n,{1,0}});pv.push_back({c,n,{.5,1}});
+        pi.insert(pi.end(),{start,start+1,start+2});
+    };
+    vec3 a(-.28,0,.18),b(.28,0,.18),c(0,.48,.18);
+    vec3 d(-.28,0,-.18),e(.28,0,-.18),f(0,.48,-.18);
+    triangle(a,b,c);triangle(d,f,e);
+    triangle(a,d,e);triangle(a,e,b);
+    triangle(b,e,f);triangle(b,f,c);
+    triangle(c,f,d);triangle(c,d,a);
+    prism=std::make_unique<Mesh>(pv,pi,std::vector<Texture>{});
+    // Plano trapezoidal; su orientacion se actualiza para mirar a la camara.
+    pv={{{-.025f,-.5f,0},{0,0,1},{0,0}},
+        {{ .025f,-.5f,0},{0,0,1},{1,0}},
+        {{ .5f, .5f,0},{0,0,1},{1,1}},
+        {{-.5f, .5f,0},{0,0,1},{0,1}}};
+    pi={0,1,2,0,2,3};
+    beamWedge=std::make_unique<Mesh>(pv,pi,std::vector<Texture>{});
 }
 void block(Shader&s,vec3 p,vec3 size,vec3 color) {
     matrix(s,"model",T(p)*S(size));
@@ -220,6 +310,24 @@ void line(Shader&s,vec3 a,vec3 b,float width,vec3 color) {
     ));
     cube->surface.diffuse=color;
     cube->Draw(s);
+}
+void wideningBeam(Shader&s,vec3 a,vec3 b,float endWidth,vec3 color,float alpha) {
+    if(glm::length(b-a)<.0001f)return;
+    vec3 forward=glm::normalize(b-a),middle=(a+b)*.5f;
+    vec3 towardCamera=glm::normalize(camera.GetPosition()-middle);
+    vec3 side=glm::cross(forward,towardCamera);
+    if(glm::length(side)<.001f)side=glm::cross(forward,vec3(0,1,0));
+    side=glm::normalize(side);
+    vec3 normal=glm::normalize(glm::cross(side,forward));
+    mat4 model(1);
+    model[0]=glm::vec4(side*endWidth,0);
+    model[1]=glm::vec4(forward*glm::length(b-a),0);
+    model[2]=glm::vec4(normal,0);
+    model[3]=glm::vec4(middle,1);
+    matrix(s,"model",model);
+    uniform(s,"beamColor",color);
+    uniform(s,"beamAlpha",alpha);
+    beamWedge->Draw(s);
 }
 struct Part {
     int station;
@@ -445,8 +553,6 @@ void room(Shader&s) {
 }
 // Conservamos el marco del padre antes de añadir el movimiento del hijo.
 void apparatus(Shader&s) {
-    double t=simulation.time;
-    float angle=simulation.balance;
     std::map<std::string,mat4>world;
     for(auto&p:parts) {
         mat4 m=T(p.pivot);
@@ -457,26 +563,19 @@ void apparatus(Shader&s) {
             // Al escalar desde ese punto, la unión con el soporte permanece fija.
             const float springTop=1.518701f;
             const float restLength=.838133f;
-            const float displacement=.14f*std::cos(t*(2.8-.4*simulation.preset));
             if(n=="spring")m=T( {
                 0,springTop,0
             }
             )*S( {
-                1,1.0f+displacement/restLength,1
+                1,1.0f+desplazamientoResorte/restLength,1
             }
             );
             if(n=="mass")m=T( {
-                0,-displacement,0
+                0,-desplazamientoResorte,0
             }
             );
         }
-        if(i==1) {
-            if(n=="beam")m=T(p.pivot)*R(angle);
-            if(n=="left"||n=="right")m=world["1beam"]*T( {
-                n=="left"?-.55f:.55f,0,0
-            }
-            )*R(-angle);
-        }
+        if(i==1&&n=="stirrer")m=T(p.pivot+desplazamientoVarilla);
         if(i==2) {
             if(n=="arm1")m=T( {
                 0,1.9,0
@@ -497,89 +596,91 @@ void apparatus(Shader&s) {
                 m=T(p.pivot+vec3(0,microscopeFocus,0))*
                   R(microscopeObjectiveAngle,vec3(0,1,0));
         }
-        if(i==5&&n.rfind("strip",0)==0) {
-            int k=std::stoi(n.substr(5));
-            m=T( {
-                0,1.76,0
+        if(i==5) {
+            if(n=="button")m=T(p.pivot+vec3(0,0,-vanButton));
+            if(n=="lower"||n=="upper")m=T(p.pivot)*R(-vanRoll,vec3(1,0,0));
+            if(n=="carousel")m=T(p.pivot)*R(vanCarousel,vec3(0,1,0));
+            if(n.rfind("front",0)==0||n.rfind("back",0)==0) {
+                const float lower=.660f,span=2.033f-lower;
+                float direction=n.rfind("front",0)==0?1.f:-1.f;
+                float relative=std::fmod(p.pivot.y-lower+direction*vanTravel,span);
+                if(relative<0)relative+=span;
+                m=T(p.pivot+vec3(0,lower+relative-p.pivot.y,0));
             }
-            )*R(k*6.2831853f/8, {
-                0,1,0
-            }
-            )*R(.12f+1.25f*simulation.charge, {
-                0,0,1
-            }
-            );
-        }
-        if(i==6) {
-            vec3 q(simulation.force[0],simulation.force[1],.04);
-            float l=glm::length(q-vec3(-.65,1.65,.04)),r=glm::length(q-vec3(.65,1.65,.04));
-            if(n=="weightL")m=T( {
-                -.81f,l-.35f,.04
-            }
-            );
-            if(n=="weightR")m=T( {
-                .81f,r-.35f,.04
-            }
-            );
-            if(n=="weightC")m=T(q-vec3(0,.36,0));
-            if(n=="pulleyL")m=T(p.pivot)*R(l/.16f);
-            if(n=="pulleyR")m=T(p.pivot)*R(-r/.16f);
         }
         world[std::to_string(i)+n]=m;
-        matrix(s,"model",T(stations[i])*m);
+        bool transparent=(i==1&&(n=="solution"||n=="crystals"||
+                                 n=="glass"||n=="stirrer"))||
+                         (i==5&&n=="vinyl");
+        if(transparent) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+        }
+        else {
+            glDisable(GL_BLEND);
+            glDepthMask(GL_TRUE);
+        }
+        glUniform1i(glGetUniformLocation(s.Program,"transparency"),transparent?1:0);
+        // La estación química conserva su composición, pero se reduce completa
+        // para que el frasco y las muestras permanezcan dentro de la mesa.
+        mat4 stationScale=i==1?S(vec3(.82f)):mat4(1);
+        matrix(s,"model",T(stations[i])*stationScale*m);
         p.model->Draw(s);
     }
-    // La pesa adicional permite reconocer visualmente el lado más cargado.
-    if(simulation.preset!=1) {
-        auto side=simulation.preset==0?"1right":"1left";
-        matrix(s,"model",T(stations[1])*world[side]*T( {
-            .12,-.38,0
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    glUniform1i(glGetUniformLocation(s.Program,"transparency"),0);
+}
+void newtonExperiment(Shader&s,Shader&beamShader,const mat4&view,const mat4&projection) {
+    const vec3 origin=stations[6];
+    const vec3 prismCenter=origin+vec3(0,.08,0);
+    const vec3 inputStart=origin+vec3(0,.30,.68);
+    const vec3 inputEnd=origin+vec3(0,.30,.18);
+    const vec3 outputStart=origin+vec3(0,.31,-.18);
+    const std::array<vec3,7>colors={vec3(.95,.03,.02),vec3(1,.25,.02),
+        vec3(1,.78,.03),vec3(.05,.85,.15),vec3(.04,.35,1),
+        vec3(.20,.08,.72),vec3(.58,.05,.92)};
+    // Pizarron mate sobre la pared posterior y soporte del prisma.
+    block(s,{0,2.35,-10.84},{3.15,1.55,.055},{.88,.88,.84});
+    block(s,prismCenter+vec3(0,-.02,0),{.78,.06,.58},{.10,.13,.14});
+    block(s,inputStart+vec3(0,0,.13),{.34,.28,.32},{.055,.065,.07});
+    block(s,inputStart+vec3(0,0,-.04),{.10,.10,.035},{.92,.88,.68});
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+    glUniform1i(glGetUniformLocation(s.Program,"transparency"),1);
+    prism->surface.diffuse={.55,.82,.88};
+    prism->surface.specular=vec3(.8);
+    prism->surface.opacity=.30f;
+    matrix(s,"model",T(prismCenter));
+    prism->Draw(s);
+    if(estadoPrisma!=PRISMA_APAGADO) {
+        // Los haces no reciben Phong: emiten color y usan mezcla aditiva.
+        beamShader.Use();
+        matrix(beamShader,"view",view);
+        matrix(beamShader,"projection",projection);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE);
+        wideningBeam(beamShader,inputStart,glm::mix(inputStart,inputEnd,avanceEntrada),
+                     .075f,{1,1,.92},1.f);
+        if(estadoPrisma>=PRISMA_DISPERSION)for(int i=0;i<7;++i) {
+            float progress=glm::clamp(avanceEspectro*7-i,0.f,1.f);
+            if(progress<=0)continue;
+            vec3 target(-1.05f+i*.35f,2.28f,-10.76f);
+            wideningBeam(beamShader,outputStart,glm::mix(outputStart,target,progress),
+                         .04f+.31f*progress,colors[i],.62f);
         }
-        )*S( {
-            .09,.13,.09
-        }
-        ));
-        cube->surface.diffuse= {
-            .72,.43,.12
-        }
-        ;
-        cube->Draw(s);
+        // Se vuelve al shader principal; la proyeccion queda a cargo de las luces.
+        s.Use();
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+        glUniform1i(glGetUniformLocation(s.Program,"transparency"),1);
     }
-    vec3 o=stations[6],q(simulation.force[0],simulation.force[1],.04),a(-.65,1.65,.04),b(.65,1.65,.04);
-    float l=glm::length(q-a),r=glm::length(q-b);
-    for(auto pair:std::array<std::pair<vec3,vec3>,5> {
-        {
-            {
-                a,q
-            }
-            , {
-                b,q
-            }
-            , {
-                {
-                    -.81f,1.65,.04
-                }
-                , {
-                    -.81f,l-.14f,.04
-                }
-            }
-            , {
-                {
-                    .81f,1.65,.04
-                }
-                , {
-                    .81f,r-.14f,.04
-                }
-            }
-            , {
-                q,q-vec3(0,.15,0)
-            }
-        }
-    }
-    )line(s,o+pair.first,o+pair.second,.012, {
-        .12,.12,.1
-    }
-    );
+    cube->surface.opacity=1;
+    prism->surface.opacity=1;
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    glUniform1i(glGetUniformLocation(s.Program,"transparency"),0);
 }
 void go(int i) {
     selected=i;
@@ -602,6 +703,40 @@ void key(GLFWwindow*w,int k,int,int action,int) {
     if(k==GLFW_KEY_C) {
         simulation.preset=(simulation.preset+1)%3;
         simulation.reset();
+    }
+    if(selected==0&&k==GLFW_KEY_P) {
+        if(estadoResorte==RESORTE_REPOSO) {
+            desplazamientoResorte=0;
+            tiempoResorte=0;
+            estadoResorte=RESORTE_ESTIRAR;
+        }
+        else {
+            desplazamientoResorte=0;
+            estadoResorte=RESORTE_REPOSO;
+        }
+    }
+    if(selected==1&&k==GLFW_KEY_P) {
+        agitarVarilla=!agitarVarilla;
+        if(!agitarVarilla) {
+            cuadroVarilla=0;
+            avanceVarilla=0;
+            desplazamientoVarilla=vec3(0);
+        }
+    }
+    if(selected==2&&k==GLFW_KEY_P)
+        simulation.pendulumRunning=!simulation.pendulumRunning;
+    if(selected==5&&k==GLFW_KEY_P)vanDeGraaffOn=!vanDeGraaffOn;
+    if(selected==6&&k==GLFW_KEY_P) {
+        if(estadoPrisma==PRISMA_APAGADO) {
+            avanceEntrada=0;
+            avanceEspectro=0;
+            estadoPrisma=PRISMA_ENTRADA;
+        }
+        else {
+            estadoPrisma=PRISMA_APAGADO;
+            avanceEntrada=0;
+            avanceEspectro=0;
+        }
     }
     if(selected==4&&k==GLFW_KEY_L)microscopeLightOn=!microscopeLightOn;
     if(selected==4&&k==GLFW_KEY_O)
@@ -655,6 +790,7 @@ void click(GLFWwindow*w,int button,int action,int) {
 }
 // Luz general y cuatro fuentes interiores, usando el shader de la práctica 8.
 void lights(Shader&s) {
+    float roomLevel=1.f-.88f*oscuridadLaboratorio;
     uniform(s,"viewPos",camera.GetPosition());
     uniform(s,"objectTint",vec3(1));
     uniform(s,"objectAlpha",1);
@@ -662,24 +798,23 @@ void lights(Shader&s) {
         -.3,-1,-.2
     }
     );
-    uniform(s,"dirLight.ambient",vec3(.32));
-    uniform(s,"dirLight.diffuse",vec3(.42));
-    uniform(s,"dirLight.specular",vec3(.18));
+    uniform(s,"dirLight.ambient",vec3(.32)*roomLevel);
+    uniform(s,"dirLight.diffuse",vec3(.42)*roomLevel);
+    uniform(s,"dirLight.specular",vec3(.18)*roomLevel);
+    const std::array<vec3,4>projectionColors={vec3(1,.04,.02),vec3(1,.72,.03),
+        vec3(.04,.85,.18),vec3(.08,.25,1)};
     for(int i=0;i<4;++i) {
         auto n="pointLights["+std::to_string(i)+"].";
-        uniform(s,n+"position", {
-            i%2?-3.f:3.f,3.9f,i<2?1.f:-7.f
-        }
-        );
+        bool projection=estadoPrisma!=PRISMA_APAGADO;
+        uniform(s,n+"position",projection?vec3(-.9f+i*.6f,2.28f,-10.52f):
+            vec3(i%2?-3.f:3.f,3.9f,i<2?1.f:-7.f));
         uniform(s,n+"constant",1);
-        uniform(s,n+"linear",.09);
-        uniform(s,n+"quadratic",.032);
-        uniform(s,n+"ambient",vec3(.015));
-        uniform(s,n+"diffuse", {
-            .65,.59,.46
-        }
-        );
-        uniform(s,n+"specular",vec3(.5));
+        uniform(s,n+"linear",projection?.7f:.09f);
+        uniform(s,n+"quadratic",projection?1.8f:.032f);
+        vec3 color=projection?projectionColors[i]*avanceEspectro:vec3(.65,.59,.46)*roomLevel;
+        uniform(s,n+"ambient",projection?color*.035f:vec3(.015)*roomLevel);
+        uniform(s,n+"diffuse",color);
+        uniform(s,n+"specular",projection?color*.45f:vec3(.5)*roomLevel);
     }
     uniform(s,"spotLight.constant",1);
     uniform(s,"spotLight.linear",1.4);
@@ -732,9 +867,11 @@ int main(int argc,char**argv) {
         glfwSetMouseButtonCallback(w,click);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_MULTISAMPLE);
-        Shader shader("shaders/lighting.vs","shaders/lighting.frag"),ui("shaders/ui.vs","shaders/ui.frag");
+        Shader shader("shaders/lighting.vs","shaders/lighting.frag"),
+               beamShader("shaders/beam.vs","shaders/beam.frag"),
+               ui("shaders/ui.vs","shaders/ui.frag");
         for(GLuint p: {
-            shader.Program,ui.Program
+            shader.Program,beamShader.Program,ui.Program
         }
         ) {
             GLint ok;
@@ -761,6 +898,10 @@ int main(int argc,char**argv) {
                 simulation.step(1./240,running);
                 accumulator-=1./240;
             }
+            animateSpring(static_cast<float>(dt));
+            animateStirrer(static_cast<float>(dt));
+            animateVanDeGraaff(static_cast<float>(dt));
+            animatePrism(static_cast<float>(dt));
             animateMicroscope(static_cast<float>(dt));
             if(smoke&&frame%12==0&&frame/12<7)go(frame/12);
             int width,height;
@@ -770,11 +911,14 @@ int main(int argc,char**argv) {
             glClearColor(.09,.15,.18,1);
             glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
             shader.Use();
-            matrix(shader,"view",camera.GetViewMatrix());
-            matrix(shader,"projection",glm::perspective(glm::radians(camera.GetZoom()),float(width)/height,.1f,80.f));
+            mat4 view=camera.GetViewMatrix();
+            mat4 projection=glm::perspective(glm::radians(camera.GetZoom()),float(width)/height,.1f,80.f);
+            matrix(shader,"view",view);
+            matrix(shader,"projection",projection);
             lights(shader);
             room(shader);
             apparatus(shader);
+            newtonExperiment(shader,beamShader,view,projection);
             glDisable(GL_DEPTH_TEST);
             ui.Use();
             matrix(ui,"projection",glm::ortho(0.f,float(width),0.f,float(height)));

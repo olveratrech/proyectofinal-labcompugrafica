@@ -24,6 +24,7 @@ namespace lab  {
         }
         ;
         double time=0,charge=0,balance=0,velocity=0;
+        bool pendulumRunning=true;
         int preset=0;
         void reset() {
             int p=preset;
@@ -66,7 +67,7 @@ namespace lab  {
             charge+=((running?1.:0.)-charge)*std::min(1.,h*2);
             if(!running)return;
             time+=h;
-            rk4(pendulum,h,pendulumRate);
+            if(pendulumRunning)rk4(pendulum,h,pendulumRate);
             rk4(force,h,[this](const State&q) {
                 return forceRate(q);
             }

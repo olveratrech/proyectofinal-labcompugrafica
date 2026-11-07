@@ -1,5 +1,6 @@
 newmtl baked
 Kd 1 1 1
-Ks 0.35 0.35 0.35
+Ks .35 .35 .35
 Ns 48
+d 1.00
 map_Kd ../../textures/1_albedo.png
