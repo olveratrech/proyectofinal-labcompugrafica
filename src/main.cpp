@@ -15,7 +15,7 @@ namespace fs=std::filesystem;
 constexpr float WALK_HEIGHT=1.95f;
 Camera camera(vec3(0,WALK_HEIGHT,8),vec3(0,1,0),-90,-8);
 lab::Physics simulation;
-bool running=true,card=false,showSample=false;
+bool card=false;
 int selected=0;
 float cardProgress=0;
 bool cameraTraveling=false;
@@ -403,7 +403,7 @@ struct Part {
 }
 ;
 std::vector<Part>parts;
-GLuint labels[7],cards[7],posters[4],signals[3],hud,signTexture,sampleTexture;
+GLuint labels[7],cards[7],posters[4],signals[3],hud,signTexture;
 GLuint loadCubemap() {
     const std::array<std::string,6>faces={
         "right.png","left.png","top.png","bottom.png","front.png","back.png"
@@ -457,7 +457,6 @@ void load() {
                                    "assets/ui");
     hud=TextureFromFile("hud.png","assets/ui");
     signTexture=TextureFromFile("sign.png","assets/ui");
-    sampleTexture=TextureFromFile("sample.png","assets/ui");
     floorTexture=TextureFromFile("tile.jpeg","assets/textures");
     tableTexture=TextureFromFile("table_wood.jpg","assets/textures/environment");
     skyboxTexture=loadCubemap();
@@ -827,7 +826,6 @@ void animateCard(float deltaTime) {
 void beginTravel(int station) {
     selected=station;
     card=false;
-    showSample=false;
     travelStart=camera.GetPosition();
     travelStart.y=WALK_HEIGHT;
     travelEnd=stations[station]+vec3(0,WALK_HEIGHT-stations[station].y,3.2f);
@@ -847,30 +845,16 @@ void animateTravel(float deltaTime) {
                 travelStartYaw+yawDelta*t,glm::mix(travelStartPitch,-10.f,t));
     if(travelProgress>=1)cameraTraveling=false;
 }
-void go(int i) {
-    selected=i;
-    card=false;
-    cardProgress=0;
-    showSample=false;
-    cameraTraveling=false;
-    placeCamera(stations[i]+vec3(0,WALK_HEIGHT-stations[i].y,3.2f),-90,-10);
-}
 void key(GLFWwindow*w,int k,int,int action,int) {
     if(action!=GLFW_PRESS)return;
     if(k==GLFW_KEY_ESCAPE) {
-        if(card||cardProgress>.001f||showSample) {
+        if(card||cardProgress>.001f) {
             card=false;
-            showSample=false;
         }
         else glfwSetWindowShouldClose(w,true);
     }
     if(k>=GLFW_KEY_1&&k<=GLFW_KEY_7)beginTravel(k-GLFW_KEY_1);
-    if(k==GLFW_KEY_SPACE)running=!running;
     if(k==GLFW_KEY_R)simulation.reset();
-    if(k==GLFW_KEY_C) {
-        simulation.preset=(simulation.preset+1)%3;
-        simulation.reset();
-    }
     if(selected==0&&k==GLFW_KEY_P) {
         if(estadoResorte==RESORTE_REPOSO) {
             desplazamientoResorte=0;
@@ -916,7 +900,6 @@ void key(GLFWwindow*w,int k,int,int action,int) {
         // se consideran las mesas cercanas que realmente están frente a nosotros.
         if(card) {
             card=false;
-            showSample=false;
             return;
         }
         vec3 forward=camera.GetFront();
@@ -942,7 +925,6 @@ void key(GLFWwindow*w,int k,int,int action,int) {
             card=true;
         }
     }
-    if(k==GLFW_KEY_M&&selected==4&&card)showSample=!showSample;
 }
 void mouse(GLFWwindow*w,double x,double y) {
     static double px=x,py=y;
@@ -996,19 +978,8 @@ void lights(Shader&s) {
     uniform(s,"spotLight.diffuse",vec3(1.f,.91f,.68f)*microscopeLight);
     uniform(s,"spotLight.specular",vec3(.65f,.58f,.42f)*microscopeLight);
 }
-void screenshot(const std::string&file,int w,int h) {
-    std::vector<unsigned char>pixels(w*h*3);
-    glPixelStorei(GL_PACK_ALIGNMENT,1);
-    glReadPixels(0,0,w,h,GL_RGB,GL_UNSIGNED_BYTE,pixels.data());
-    fs::create_directories(fs::path(file).parent_path());
-    std::ofstream out(file,std::ios::binary);
-    if(!out)throw std::runtime_error("No se pudo guardar la captura");
-    out<<"P6\n"<<w<<" "<<h<<"\n255\n";
-    for(int y=h-1;y>=0;--y)out.write((char*)pixels.data()+y*w*3,w*3);
-}
-int main(int argc,char**argv) {
+int main(int,char**argv) {
     try {
-        bool smoke=argc>1&&std::string(argv[1])=="--smoke";
         fs::path exe=fs::absolute(argv[0]).parent_path();
         if(!fs::exists("assets/models/parts.txt")) {
             if(fs::exists(exe/"assets"))fs::current_path(exe);
@@ -1026,7 +997,7 @@ int main(int argc,char**argv) {
         glewExperimental=GL_TRUE;
         if(glewInit()!=GLEW_OK)throw std::runtime_error("GLEW no pudo iniciar");
         glGetError();
-        glfwSwapInterval(smoke?0:1);
+        glfwSwapInterval(1);
         glfwSetKeyCallback(w,key);
         glfwSetCursorPosCallback(w,mouse);
         glEnable(GL_DEPTH_TEST);
@@ -1051,7 +1022,6 @@ int main(int argc,char**argv) {
             double now=glfwGetTime(),dt=std::min(now-last,.05);
             last=now;
             glfwPollEvents();
-            if(smoke)dt=1./60;
             if(cardProgress<.001f&&!cameraTraveling) {
                 if(glfwGetKey(w,GLFW_KEY_W))moveCamera(FORWARD,dt);
                 if(glfwGetKey(w,GLFW_KEY_S))moveCamera(BACKWARD,dt);
@@ -1060,7 +1030,7 @@ int main(int argc,char**argv) {
             }
             accumulator+=dt;
             while(accumulator>=1./240) {
-                simulation.step(1./240,running);
+                simulation.step(1./240);
                 accumulator-=1./240;
             }
             animateSpring(static_cast<float>(dt));
@@ -1071,7 +1041,6 @@ int main(int argc,char**argv) {
             animateMicroscope(static_cast<float>(dt));
             animateCard(static_cast<float>(dt));
             animateTravel(static_cast<float>(dt));
-            if(smoke&&frame%12==0&&frame/12<7)go(frame/12);
             int width,height;
             glfwGetFramebufferSize(w,&width,&height);
             if(height==0)continue;
@@ -1105,39 +1074,16 @@ int main(int argc,char**argv) {
                 float scale=.55f+.45f*t;
                 float centerY=glm::mix(height*.08f,height*.46f,t);
                 float tilt=glm::radians(-3.f)*(1.f-t);
-                alphaPicture(ui,showSample?sampleTexture:cards[selected],
+                alphaPicture(ui,cards[selected],
                     T(vec3(width*.5f,centerY,0))*R(tilt,vec3(0,0,1))*
                     S(vec3(ww*scale,h*scale,1)));
             }
             glEnable(GL_DEPTH_TEST);
-            if(smoke&&frame%12==10)screenshot((fs::temp_directory_path()/"laboratorio-capturas/station").string()+std::to_string(frame/12)+".ppm",width,height);
-            if(smoke&&frame==84) {
-                go(4);
-                key(w,GLFW_KEY_E,0,GLFW_PRESS,0);
-                if(!card||selected!=4)throw std::runtime_error("La apertura con E fallo");
-                key(w,GLFW_KEY_SPACE,0,GLFW_PRESS,0);
-                if(running)throw std::runtime_error("Pausa incorrecta");
-                key(w,GLFW_KEY_C,0,GLFW_PRESS,0);
-                key(w,GLFW_KEY_R,0,GLFW_PRESS,0);
-            }
-            if(smoke&&frame==86)screenshot((fs::temp_directory_path()/"laboratorio-capturas/card.ppm").string(),width,height);
             GLenum error=glGetError();
             if(error!=GL_NO_ERROR)throw std::runtime_error("Error OpenGL: "+std::to_string(error));
-            if(smoke&&frame==87) {
-                key(w,GLFW_KEY_M,0,GLFW_PRESS,0);
-                if(!showSample)throw std::runtime_error("Muestra incorrecta");
-            }
-            if(smoke&&frame==89) {
-                card=false;
-                cardProgress=0;
-                showSample=false;
-                placeCamera(vec3(0,WALK_HEIGHT,8),-90,0);
-            }
-            if(smoke&&frame==91)screenshot((fs::temp_directory_path()/"laboratorio-capturas/facade.ppm").string(),width,height);
             glfwSwapBuffers(w);
             ++frame;
-            if(smoke&&frame>92)break;
-            std::string title=std::string("Laboratorio | ")+names[selected]+(running?" | En marcha":" | Pausa")+" | Configuracion "+std::to_string(simulation.preset+1);
+            std::string title=std::string("Laboratorio | ")+names[selected];
             glfwSetWindowTitle(w,title.c_str());
         }
         std::cout<<"Render finalizado: "<<frame<<" cuadros, "<<parts.size()<<" piezas.\n";

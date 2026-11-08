@@ -8,3 +8,26 @@ __pycache__/
 .idea/
 *.o
 *.log
+
+# Documentación LaTeX: fuente, PDF final y PDF incorporados al documento
+doc/*.tex
+doc/**/*.tex
+doc/*.pdf
+doc/**/*.pdf
+
+# Archivos auxiliares generados al compilar LaTeX
+doc/**/*.aux
+doc/**/*.bbl
+doc/**/*.bcf
+doc/**/*.blg
+doc/**/*.fdb_latexmk
+doc/**/*.fls
+doc/**/*.lof
+doc/**/*.lot
+doc/**/*.nav
+doc/**/*.out
+doc/**/*.run.xml
+doc/**/*.snm
+doc/**/*.synctex.gz
+doc/**/*.toc
+doc/**/*.xdv

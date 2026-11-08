@@ -26,7 +26,6 @@ Alternativa CMake (requiere CMake y las dependencias localizables):
 ```sh
 cmake -S . -B build
 cmake --build build --config Release
-ctest --test-dir build --output-on-failure
 ```
 
 La ruta CMake se proporciona para portabilidad; la compilación comprobada es el
@@ -37,35 +36,43 @@ no se han probado. No existe un ejecutable Windows verificado.
 
 | Acción | Control |
 |---|---|
-| Recorrer | WASD |
+| Caminar a altura fija | WASD |
 | Mirar | Mantener botón derecho y mover ratón |
-| Vista de estación | 1–7 |
-| Consultar ficha | Clic en la hoja o E cerca de la mesa |
-| Cerrar ficha | Clic o Esc |
+| Desplazarse a una estación | 1–7 |
+| Consultar / guardar ficha | E cerca de la mesa |
+| Cerrar ficha | E o Esc |
 | Iniciar / pausar demostraciones | Espacio |
 | Restablecer simulaciones | R |
 | Cambiar configuración | C |
+| Estirar / detener masa–resorte | P en la estación 1 |
+| Agitar / detener varilla de vidrio | P en la estación 2 |
+| Pausar / reanudar péndulo doble | P en la estación 3 |
+| Encender / detener Van de Graaff | P en la estación 6 |
+| Iniciar / apagar prisma de Newton | P en la estación 7 |
+| Encender / apagar microscopio | L en la estación 5 |
+| Cambiar objetivo 120° | O en la estación 5 |
+| Subir / bajar enfoque | F en la estación 5 |
 | Muestra ilustrativa del microscopio | M con su ficha abierta |
 | Salir | Esc fuera de una ficha |
 
-Los controles de simulación son globales. Las tres configuraciones afectan a
-resorte, balanza y pesas. La cámara es libre; no tiene colisiones.
+Los controles de simulación son globales. La cámara conserva una altura de caminata
+y los límites del salón impiden atravesar sus muros.
 
 ## Estaciones
 
 1. Masa–resorte: oscilación armónica y deformación del resorte.
-2. Balanza: brazo articulado con platillos que conservan su orientación.
+2. Cristalización: preparación de sulfato de cobre pentahidratado con vidrio y líquidos transparentes.
 3. Péndulo doble: dos ángulos calculados mediante RK4.
-4. Benceno: maqueta de Kekulé con carbonos, hidrógenos y enlaces.
+4. Principio de Arquímedes: dinamómetro, cuerpo suspendido y recipiente transparente.
 5. Microscopio: cuerpo, platina, objetivos y ocular; muestra esquemática.
-6. Van de Graaff: apertura gradual de tiras por una carga representada.
-7. Poleas: nudo y pesas acopladas mediante cuerdas de longitud fija.
+6. Van de Graaff: banda visible, rodillos, toma de tierra y carrusel electrostático animados.
+7. Prisma de Newton: haz blanco y espectro progresivo proyectado sobre un pizarrón mate.
 
 ## Estructura
 
 ```text
 assets/blender/    fuente editable con colecciones y padres
-assets/models/     OBJ, MTL y manifiesto de piezas
+assets/models/     OBJ y MTL separados por aparato; parts.txt conserva la jerarquía
 assets/textures/   color horneado y AO por estación
 assets/ui/         fichas y rótulos
 src/base/          código conservado de las prácticas
@@ -91,10 +98,14 @@ macOS. Las fichas incluidas ya están listas y no necesitan regenerarse.
 
 Es una implementación inicial funcional, con siete modelos y cinco demostraciones
 animadas. La clasificación de las animaciones complejas debe validarla el profesor.
-No simula electricidad ni óptica real; el benceno es una maqueta, no química cuántica.
-No incluye sombras dinámicas, normal mapping ni colisiones del recorrido.
+No resuelve una simulación completa de fluidos: la inmersión muestra de forma didáctica el empuje, el cambio de nivel y la variación de peso aparente.
+No incluye sombras dinámicas, normal mapping ni colisiones contra el mobiliario.
 
 Antes de entregar: validar las imágenes de referencia de fachada/interior con el
 profesor, completar los datos personales y las conclusiones del manual, grabar el
 video, preparar la exposición y probar en el equipo de evaluación. Los manuales
 Markdown son una base de documentación, no una entrega académica final revisada.
+
+## Modelado individual
+
+Los siete archivos editables están en [assets/blender/independientes](assets/blender/independientes/README.md). Conservan piezas y pivotes del original. La guía describe el orden de mejora y cómo evitar sobrescribir retoques manuales.

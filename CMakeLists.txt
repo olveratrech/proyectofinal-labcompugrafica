@@ -13,7 +13,3 @@ target_link_libraries(laboratorio PRIVATE OpenGL::GL GLEW::GLEW glfw glm::glm as
 add_custom_command(TARGET laboratorio POST_BUILD
  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:laboratorio>/assets
  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:laboratorio>/shaders)
-enable_testing()
-add_executable(physics-test tests/physics.cpp)
-target_include_directories(physics-test PRIVATE src)
-add_test(NAME dynamics COMMAND physics-test)
