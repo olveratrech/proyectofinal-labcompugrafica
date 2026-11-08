@@ -1,0 +1,5 @@
+newmtl material
+Kd 0.82 0.025 0.018
+Ks .4 .4 .4
+Ns 48
+d 1

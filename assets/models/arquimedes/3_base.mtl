@@ -1,5 +1,6 @@
-newmtl baked
+newmtl material
 Kd 1 1 1
-Ks 0.35 0.35 0.35
+Ks .4 .4 .4
 Ns 48
+d 1
 map_Kd ../../textures/3_albedo.png
