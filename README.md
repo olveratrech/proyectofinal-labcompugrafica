@@ -29,8 +29,36 @@ cmake --build build --config Release
 ```
 
 La ruta CMake se proporciona para portabilidad; la compilación comprobada es el
-script de macOS. Windows/Linux requieren sus paquetes correspondientes y todavía
-no se han probado. No existe un ejecutable Windows verificado.
+script de macOS. En Linux, usa los scripts de la sección siguiente. Windows
+requiere sus paquetes correspondientes y todavía no se ha probado. No existe un
+ejecutable Windows verificado.
+
+## Ejecutar y empaquetar en Linux
+
+Requiere CMake 3.20 o posterior, un compilador C++17 y los paquetes de desarrollo
+de GLFW, GLEW, GLM y Assimp. En Debian/Ubuntu:
+
+```sh
+sudo apt install build-essential cmake libglfw3-dev libglew-dev libglm-dev libassimp-dev zlib1g-dev
+```
+
+Desde la raíz del repositorio:
+
+```sh
+sh tools/build_linux.sh
+./build-linux/laboratorio
+```
+
+Para generar una carpeta transportable y un archivo `.tar.gz` con las
+bibliotecas GLEW, GLFW y Assimp incluidas:
+
+```sh
+sh tools/package_linux.sh
+```
+
+El resultado queda en `dist/Laboratorio-linux/` y `dist/Laboratorio-linux.tar.gz`.
+El lanzador `Laboratorio.sh` fuerza X11/XWayland cuando la sesión es Wayland,
+porque GLEW utiliza GLX.
 
 ## Controles
 
