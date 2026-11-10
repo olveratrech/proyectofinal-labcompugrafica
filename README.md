@@ -1,38 +1,99 @@
-# Laboratorio de materia, fuerzas y movimiento
+# RenderLab: Tu laboratorio virtual de confianza
 
-Recreación 3D en OpenGL de un laboratorio didáctico con siete estaciones. La
-arquitectura y las mesas se construyen por código. Los aparatos se modelan en
-Blender, se hornean y se exportan como piezas OBJ con pivotes independientes.
+RenderLab es un laboratorio científico 3D desarrollado en C++ y OpenGL. La escena
+reúne siete estaciones didácticas para demostrar carga de modelos, texturizado,
+transparencias, iluminación, shaders, transformaciones jerárquicas, cuadros clave,
+máquinas de estados y simulación numérica.
 
-**Base académica:** práctica 8 (cámara, shaders, modelos, mallas e iluminación).
-Consulta [la procedencia](docs/PROCEDENCIA.md) para distinguir la base de las
-ampliaciones nuevas. No todo el código proviene de las prácticas.
+El proyecto parte del código de las prácticas del Laboratorio de Computación
+Gráfica e Interacción Humano-Computadora. La procedencia del código reutilizado y
+las ampliaciones realizadas se explican en
+[doc/PROCEDENCIA.md](doc/PROCEDENCIA.md).
 
-## Ejecutar en este Mac
+## Documentación
 
-Desde la raíz del repositorio:
+- [Documentación técnica y del proyecto](doc/esp/documentacion-esp.pdf)
+- [Manual de usuario](doc/esp/manual-usuario.pdf)
+- [Fuente del manual de usuario](doc/esp/manual-usuario.tex)
+
+Los archivos PDF y LaTeX se distribuyen con la entrega académica, pero se mantienen
+fuera del control de versiones para evitar incorporar resultados de compilación.
+
+## Estaciones
+
+1. **Ley de Hooke:** masa suspendida y oscilación amortiguada del resorte.
+2. **Cristalización:** preparación de cristales de sulfato de cobre pentahidratado.
+3. **Péndulo doble:** movimiento calculado con Runge--Kutta de cuarto orden.
+4. **Principio de Arquímedes:** inmersión de un cuerpo y desplazamiento de agua.
+5. **Microscopio:** iluminación, cambio de objetivo y ajuste de enfoque.
+6. **Van de Graaff:** bandas, rodillos y carrusel electrostático animados.
+7. **Prisma de Newton:** entrada de luz blanca y dispersión cromática didáctica.
+
+## Controles
+
+| Acción | Control |
+|---|---|
+| Caminar | `W`, `A`, `S`, `D` |
+| Mirar alrededor | Mantener presionado el botón derecho y mover el ratón |
+| Viajar a una estación | `1` a `7` |
+| Abrir o cerrar la ficha cercana | `E` |
+| Reiniciar las simulaciones | `R` |
+| Activar o detener la demostración de la estación seleccionada | `P` |
+| Encender o apagar la luz del microscopio | `L` en la estación 5 |
+| Girar el revólver del microscopio 120 grados | `O` en la estación 5 |
+| Subir o bajar el enfoque del microscopio | `F` en la estación 5 |
+| Cerrar una ficha o salir del programa | `Esc` |
+
+La tecla `P` controla la ley de Hooke, la varilla de cristalización, el péndulo,
+el mecanismo de Arquímedes, el generador de Van de Graaff y el prisma. La acción
+depende de la estación seleccionada con las teclas numéricas.
+
+## Compilación en macOS
+
+Se requiere macOS con Homebrew y las dependencias GLFW, GLEW, GLM y Assimp
+instaladas bajo `/opt/homebrew`.
 
 ```sh
+brew install glfw glew glm assimp
 sh tools/build_macos.sh
 ./build/laboratorio
 ```
 
-Requiere las instalaciones de GLFW, GLEW, GLM y Assimp disponibles en
-`/opt/homebrew`. El script usa Clang y ejecuta una prueba de física. Para preparar
-una carpeta transportable en un Mac compatible, usa `sh tools/package_macos.sh`.
-
-Alternativa CMake (requiere CMake y las dependencias localizables):
+También puede utilizarse CMake cuando las dependencias sean localizables:
 
 ```sh
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
+./build/laboratorio
 ```
 
-La ruta CMake se proporciona para portabilidad; la compilación comprobada es el
-script de macOS. En Linux, usa los scripts de la sección siguiente. Windows
-usa CMake, vcpkg y Visual Studio Build Tools. Para compilar y crear un
-paquete portable x64, configura `VCPKG_ROOT` con la ruta de vcpkg y ejecuta en
-PowerShell desde la raíz:
+## Compilación en Linux
+
+En Debian o Ubuntu se requieren CMake 3.20, un compilador con C++17 y los paquetes
+de desarrollo correspondientes:
+
+```sh
+sudo apt update
+sudo apt install build-essential cmake libglfw3-dev libglew-dev libglm-dev libassimp-dev zlib1g-dev
+sh tools/build_linux.sh
+./build-linux/laboratorio
+```
+
+El repositorio incluye un empaquetador Linux aportado mediante una rama separada:
+
+```sh
+sh tools/package_linux.sh
+```
+
+Genera `dist/Laboratorio-linux/` y `dist/Laboratorio-linux.tar.gz`. La carpeta
+`dist/` no forma parte del repositorio.
+
+## Windows
+
+La compilación de Windows utiliza CMake, vcpkg y Visual Studio Build Tools. Primero
+deben instalarse `glew:x64-windows`, `glfw3:x64-windows`, `glm:x64-windows` y
+`assimp:x64-windows`. Después se configura `VCPKG_ROOT` y se ejecutan los scripts
+desde PowerShell en la raíz del repositorio:
 
 ```powershell
 $env:VCPKG_ROOT = "C:\vcpkg"
@@ -40,106 +101,39 @@ $env:VCPKG_ROOT = "C:\vcpkg"
 & .\tools\package_windows.ps1 -Generator "Visual Studio 18 2026"
 ```
 
-El script requiere que estén instalados `glew:x64-windows`, `glfw3:x64-windows`,
-`glm:x64-windows` y `assimp:x64-windows`. La carpeta `dist/RenderLab-windows-x64/`
-y el archivo `dist/RenderLab-windows-x64.zip` contienen el ejecutable, las DLL
-de terceros, los recursos, los shaders, las licencias y `LEEME.txt`. Para usar
-el generador `Visual Studio 18 2026` se necesita CMake 4.2 o posterior; con
-Visual Studio 2022 se puede omitir `-Generator`.
+El empaquetado genera `dist/RenderLab-windows-x64/` y
+`dist/RenderLab-windows-x64.zip` con el ejecutable, las DLL de terceros, recursos,
+shaders, licencias y `LEEME.txt`. El generador `Visual Studio 18 2026` requiere
+CMake 4.2 o posterior; con Visual Studio 2022 puede omitirse `-Generator`.
 
-## Ejecutar y empaquetar en Linux
-
-Requiere CMake 3.20 o posterior, un compilador C++17 y los paquetes de desarrollo
-de GLFW, GLEW, GLM y Assimp. En Debian/Ubuntu:
-
-```sh
-sudo apt install build-essential cmake libglfw3-dev libglew-dev libglm-dev libassimp-dev zlib1g-dev
-```
-
-Desde la raíz del repositorio:
-
-```sh
-sh tools/build_linux.sh
-./build-linux/laboratorio
-```
-
-Para generar una carpeta transportable y un archivo `.tar.gz` con las
-bibliotecas GLEW, GLFW y Assimp incluidas:
-
-```sh
-sh tools/package_linux.sh
-```
-
-El resultado queda en `dist/Laboratorio-linux/` y `dist/Laboratorio-linux.tar.gz`.
-El lanzador `Laboratorio.sh` fuerza X11/XWayland cuando la sesión es Wayland,
-porque GLEW utiliza GLX.
-
-## Controles
-
-| Acción | Control |
-|---|---|
-| Caminar | W, A, S, D |
-| Mirar mientras se mantiene presionado | Ratón derecho |
-| Viajar a una estación | 1 a 7 |
-| Abrir o cerrar la ficha cercana | E |
-| Reiniciar las simulaciones | R |
-| Activar o detener la demostración seleccionada | P |
-| Encender o apagar la luz del microscopio | L |
-| Girar 120 grados los objetivos del microscopio | O |
-| Subir o bajar el enfoque del microscopio | F |
-| Cerrar la ficha o salir | Esc |
-
-Los controles de simulación son globales. La cámara conserva una altura de caminata
-y los límites del salón impiden atravesar sus muros.
-
-## Estaciones
-
-1. Masa–resorte: oscilación armónica y deformación del resorte.
-2. Cristalización: preparación de sulfato de cobre pentahidratado con vidrio y líquidos transparentes.
-3. Péndulo doble: dos ángulos calculados mediante RK4.
-4. Principio de Arquímedes: dinamómetro, cuerpo suspendido y recipiente transparente.
-5. Microscopio: cuerpo, platina, objetivos y ocular; muestra esquemática.
-6. Van de Graaff: banda visible, rodillos, toma de tierra y carrusel electrostático animados.
-7. Prisma de Newton: haz blanco y espectro progresivo proyectado sobre un pizarrón mate.
-
-## Estructura
+## Estructura del repositorio
 
 ```text
-assets/blender/    fuente editable con colecciones y padres
-assets/models/     OBJ y MTL separados por aparato; parts.txt conserva la jerarquía
-assets/textures/   color horneado y AO por estación
-assets/ui/         fichas y rótulos
-src/base/          código conservado de las prácticas
-src/               integración y simulaciones nuevas
-shaders/           iluminación de práctica 8 e interfaz nueva
-tools/             generación, compilación y empaquetado
-tests/             comprobaciones de dinámica
-docs/              procedencia, manuales y datos de modelos
+assets/blender/   modelos editables de Blender
+assets/models/    piezas OBJ/MTL y manifiesto parts.txt
+assets/textures/  texturas horneadas y recursos del entorno
+assets/ui/        HUD, rótulos, fichas, carteles y señalización
+doc/              procedencia, documentación, manual e imágenes
+shaders/          shaders de escena, interfaz, skybox y haces
+src/base/         clases procedentes de las prácticas
+src/              integración de la escena y simulación
+tools/            scripts de compilación y empaquetado
 ```
 
-Para regenerar los aparatos:
+`assets/models/parts.txt` registra la estación, el nombre, el padre y el pivote de
+cada pieza independiente. Los cargadores `Model`, `Mesh`, `Shader`, `Camera` y
+`stb_image` se conservan en `src/base/`; la integración del laboratorio está en
+`src/main.cpp` y el péndulo doble en `src/Physics.h`.
 
-```sh
-/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 --python tools/build_models.py
-python3 tools/build_ui.py
-```
+## Alcance
 
-La generación reemplaza los recursos generados; guarda antes cualquier edición
-manual del `.blend` con otro nombre. `build_ui.py` requiere Pillow y usa Arial de
-macOS. Las fichas incluidas ya están listas y no necesitan regenerarse.
+RenderLab es una demostración didáctica, no un simulador científico de precisión.
+Los líquidos no usan dinámica de fluidos, la dispersión del prisma es visual y las
+colisiones se limitan a los muros del laboratorio. No se implementan sombras
+dinámicas, trazado de rayos ni refracción físicamente exacta.
 
-## Alcance y entrega
+## Licencia y recursos
 
-Es una implementación inicial funcional, con siete modelos y cinco demostraciones
-animadas. La clasificación de las animaciones complejas debe validarla el profesor.
-No resuelve una simulación completa de fluidos: la inmersión muestra de forma didáctica el empuje, el cambio de nivel y la variación de peso aparente.
-No incluye sombras dinámicas, normal mapping ni colisiones contra el mobiliario.
-
-Antes de entregar: validar las imágenes de referencia de fachada/interior con el
-profesor, completar los datos personales y las conclusiones del manual, grabar el
-video, preparar la exposición y probar en el equipo de evaluación. Los manuales
-Markdown son una base de documentación, no una entrega académica final revisada.
-
-## Modelado individual
-
-Los siete archivos editables están en [assets/blender/independientes](assets/blender/independientes/README.md). Conservan piezas y pivotes del original. La guía describe el orden de mejora y cómo evitar sobrescribir retoques manuales.
+El código del proyecto se distribuye bajo los términos de [LICENSE](LICENSE). Los
+créditos y licencias de recursos externos se documentan en la memoria técnica y en
+[doc/PROCEDENCIA.md](doc/PROCEDENCIA.md).

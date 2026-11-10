@@ -143,8 +143,8 @@ def write_launcher():
 
 def write_readme():
     (OUT / "LEEME.txt").write_text(
-        "Laboratorio de materia, fuerzas y movimiento\n"
-        "============================================\n\n"
+        "RenderLab: Tu laboratorio virtual de confianza\n"
+        "================================================\n\n"
         "Ejecutar:\n"
         "    ./Laboratorio.sh\n\n"
         "El lanzador configura lib/ y, en Wayland, usa X11/XWayland.\n\n"
@@ -158,12 +158,9 @@ def write_readme():
         "    Ratón der.  mirar (mantener pulsado)\n"
         "    1-7         ir a una estación\n"
         "    E           abrir/cerrar ficha cerca de la mesa\n"
-        "    Espacio     iniciar/pausar demostraciones\n"
         "    R           restablecer simulaciones\n"
-        "    C           cambiar configuración\n"
-        "    P           acción de la estación (resorte, varilla, péndulo, Van de Graaff, prisma)\n"
+        "    P           acción de la estación (resorte, varilla, péndulo, Arquímedes, Van de Graaff, prisma)\n"
         "    L / O / F   encender, cambiar objetivo y enfocar el microscopio\n"
-        "    M           muestra del microscopio con su ficha abierta\n"
         "    Esc         salir\n"
     )
 
