@@ -21,6 +21,10 @@ doc/**/*.tex
 doc/*.pdf
 doc/**/*.pdf
 
+# Documentos finales incluidos en la entrega
+!doc/esp/documentacion-esp.pdf
+!doc/esp/manual-usuario.pdf
+
 # Archivos auxiliares generados al compilar LaTeX
 doc/**/*.aux
 doc/**/*.bbl
