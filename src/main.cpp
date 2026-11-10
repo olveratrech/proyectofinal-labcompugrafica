@@ -1,5 +1,4 @@
-// Base: Practica8/fuentesDeLuz.cpp y clases de src/base.
-// La sala, las estaciones, las fichas y su coordinación son código nuevo.
+// Integra las clases base de las prácticas con la escena de RenderLab.
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -36,7 +35,7 @@ float vanButton=0,vanTravel=0,vanRoll=0,vanCarousel=0;
 enum EstadoPrisma {PRISMA_APAGADO,PRISMA_ENTRADA,PRISMA_DISPERSION,PRISMA_COMPLETO};
 EstadoPrisma estadoPrisma=PRISMA_APAGADO;
 float avanceEntrada=0,avanceEspectro=0,oscuridadLaboratorio=0;
-// Cada mecanismo guarda su propio destino para que ninguno bloquee a los demas.
+// Los controles del microscopio conservan destinos independientes.
 bool microscopeLightOn=false,microscopeFocusLow=false;
 float microscopeButton=0,microscopeLight=0;
 float microscopeFocus=0,microscopeFocusAngle=0;
@@ -65,13 +64,13 @@ const vec3 stations[]= {
     }
 }
 ;
-// 900 / 192 = 4.6875. El centro deja 0.12 unidades respecto a ambos bordes.
+// La etiqueta conserva su proporción y un margen respecto a la esquina de la mesa.
 const vec3 labelOffset(.88f,.015f,.891333f);
 constexpr float labelWidth=1.30f;
 constexpr float labelHeight=labelWidth*192.f/900.f;
 const vec3 microscopeOffset(0,0,-.10f);
 const char* names[]= {
-    "Masa y resorte","Cristalizacion","Pendulo doble","Principio de Arquimedes","Microscopio","Van de Graaff","Prisma de Newton"
+    "Ley de Hooke","Cristalizacion","Pendulo doble","Principio de Arquimedes","Microscopio","Van de Graaff","Prisma de Newton"
 }
 ;
 void uniform(Shader&s,const std::string&n,vec3 v) {
@@ -99,8 +98,7 @@ float approach(float value,float target,float amount) {
     if(value<target)return std::min(value+amount,target);
     return std::max(value-amount,target);
 }
-// Maquina de estados como en la practica 9: primero se tira de la masa y luego
-// se libera. La envolvente decreciente hace visible el amortiguamiento.
+// El resorte se estira y después oscila hasta que su amplitud es casi nula.
 void animateSpring(float deltaTime) {
     const float estiramiento=.18f;
     if(estadoResorte==RESORTE_REPOSO)return;
@@ -121,7 +119,7 @@ void animateSpring(float deltaTime) {
         estadoResorte=RESORTE_REPOSO;
     }
 }
-// Interpolacion entre cuadros clave siguiendo la estructura de la practica 10.
+// La varilla interpola un recorrido cerrado definido por cinco posiciones.
 void animateStirrer(float deltaTime) {
     const std::array<vec3,5> cuadros={vec3(0),vec3(.045f,0,-.025f),
         vec3(0,0,-.05f),vec3(-.045f,0,-.025f),vec3(0)};
@@ -134,8 +132,7 @@ void animateStirrer(float deltaTime) {
     desplazamientoVarilla=glm::mix(cuadros[cuadroVarilla],
                                    cuadros[cuadroVarilla+1],avanceVarilla);
 }
-// Un solo estado mueve al mismo tiempo el cilindro, el resorte y la lectura.
-// La interpolacion suave evita que el mecanismo arranque o se detenga de golpe.
+// Una variable coordina el descenso del cuerpo y la respuesta del instrumento.
 void animateArchimedes(float deltaTime) {
     avanceArquimedes=approach(avanceArquimedes,
                               arquimedesSumergido?1.f:0.f,deltaTime*.42f);
@@ -160,8 +157,7 @@ void animatePrism(float deltaTime) {
         if(avanceEspectro>=1)estadoPrisma=PRISMA_COMPLETO;
     }
 }
-// Igual que en la maquina de estados de la practica 9: cada destino avanza
-// con deltaTime y puede cambiar aunque las otras animaciones sigan en curso.
+// Cada control se aproxima a su destino sin bloquear a los demás.
 void animateMicroscope(float deltaTime) {
     microscopeButton=approach(microscopeButton,microscopeLightOn?.018f:0.f,
                               deltaTime*.12f);
@@ -178,7 +174,7 @@ void animateMicroscope(float deltaTime) {
 std::unique_ptr<Mesh> cube,quad,floorPlane,prism,beamWedge;
 std::unique_ptr<Model> windowFrame,windowMetal,windowGlass;
 GLuint floorTexture=0,tableTexture=0,skyboxTexture=0;
-// Un cubo y un plano se reutilizan para toda la arquitectura y las fichas.
+// Estas primitivas se reutilizan en la arquitectura, el mobiliario y la interfaz.
 void primitives() {
     std::vector<Vertex>v;
     std::vector<GLuint>ind;
@@ -295,7 +291,7 @@ void primitives() {
        {{-.5f,0, .5f},{0,1,0},{0,10}}};
     floorPlane=std::make_unique<Mesh>(v,std::vector<GLuint>{0,1,2,0,2,3},
                                       std::vector<Texture>{});
-    // Prisma triangular sencillo, construido igual que las primitivas del curso.
+    // El prisma se arma con una malla triangular de baja complejidad.
     std::vector<Vertex>pv;
     std::vector<GLuint>pi;
     auto triangle=[&](vec3 a,vec3 b,vec3 c) {
@@ -311,7 +307,7 @@ void primitives() {
     triangle(b,e,f);triangle(b,f,c);
     triangle(c,f,d);triangle(c,d,a);
     prism=std::make_unique<Mesh>(pv,pi,std::vector<Texture>{});
-    // Plano trapezoidal; su orientacion se actualiza para mirar a la camara.
+    // El plano trapezoidal se orienta hacia la cámara durante el dibujo.
     pv={{{-.025f,-.5f,0},{0,0,1},{0,0}},
         {{ .025f,-.5f,0},{0,0,1},{1,0}},
         {{ .5f, .5f,0},{0,0,1},{1,1}},
@@ -339,8 +335,7 @@ void archimedesWater(Shader&s) {
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
     glUniform1i(glGetUniformLocation(s.Program,"transparency"),1);
-    // Un volumen algo mas denso evita que las estaciones lejanas se vean con
-    // demasiada nitidez. La lamina superior ayuda a leer el nivel del agua.
+    // El volumen representa el agua y una lámina delgada marca su nivel.
     cube->surface.opacity=.64f;
     block(s,stations[3]+vec3(.20f,tankBottom+tankHeight*.5f,.04f),
           vec3(.78f,tankHeight,.54f),vec3(.018f,.25f,.62f));
@@ -428,13 +423,13 @@ GLuint loadCubemap() {
     glBindTexture(GL_TEXTURE_CUBE_MAP,0);
     return texture;
 }
-// Cada OBJ tiene su propio pivote; no se fusionan las piezas móviles.
+// El manifiesto mantiene cada OBJ separado para conservar su pivote.
 void load() {
     std::ifstream in("assets/models/parts.txt");
     if(!in)throw std::runtime_error("No se encontro parts.txt");
-    const std::array<std::string,7> modelFolders= {
-        "masa_resorte","balanza","pendulo_doble","arquimedes",
-        "microscopio","van_de_graaff","equilibrio_fuerzas"
+    const std::array<std::string,6> modelFolders= {
+        "ley_de_hooke","cristalizacion","pendulo_doble","arquimedes",
+        "microscopio","van_de_graaff"
     };
     Part p;
     while(in>>p.station>>p.name>>p.parent>>p.pivot.x>>p.pivot.y>>p.pivot.z) {
@@ -476,8 +471,7 @@ void picture(Shader&s,GLuint texture,mat4 transform) {
     quad->surface.diffuse=vec3(1);
     quad->Draw(s);
 }
-// Transparencia alfa igual que en la práctica 8. Se restaura el estado para no
-// afectar modelos opacos ni la textura de las cubiertas de las mesas.
+// La mezcla alfa se limita al dibujo de la imagen y después se restaura.
 void alphaPicture(Shader&s,GLuint texture,mat4 transform) {
     GLboolean blendWasEnabled=glIsEnabled(GL_BLEND);
     GLboolean previousDepthMask=GL_TRUE;
@@ -540,7 +534,7 @@ void room(Shader&s) {
     floorPlane->surface.diffuse=vec3(1);
     matrix(s,"model",T(vec3(0,-.01f,-1))*S(vec3(16,1,20)));
     floorPlane->Draw(s);
-    // Los muros laterales se construyen por tramos para dejar huecos reales.
+    // Los muros laterales se dividen para dejar espacio a las ventanas.
     for(float x:{-7.92f,7.92f}) {
         block(s,{x,.75f,-1},{.16f,1.5f,20},wall);
         block(s,{x,4.5f,-1},{.16f,1.6f,20},wall);
@@ -565,14 +559,14 @@ void room(Shader&s) {
         16,.14,20
     }
     ,white);
-    // El laboratorio se presenta sólo por dentro; el muro frontal queda cerrado.
+    // La escena se presenta desde el interior y el muro frontal queda cerrado.
     block(s,{0,2.65f,9},{16,5.3f,.22f},wall);
     constexpr float signWidth=8.4f;
     constexpr float signHeight=signWidth*606.f/4512.f;
     alphaPicture(s,signTexture,T(vec3(0,3.80f,-10.88f))*
             S(vec3(signWidth,signHeight,1)));
 
-    // Dos carteles en el fondo y uno en cada muro lateral, orientados al interior.
+    // Los carteles se reparten entre el fondo y los muros laterales.
     constexpr float posterWidth=1.725f;
     constexpr float posterHeight=posterWidth*2400.f/1800.f;
     alphaPicture(s,posters[0],T(vec3(-5.3f,2.55f,-10.88f))*
@@ -586,7 +580,7 @@ void room(Shader&s) {
             R(glm::radians(-90.f),vec3(0,1,0))*
             S(vec3(posterWidth,posterHeight,1)));
 
-    // Señales de seguridad en paños laterales libres, sin ocupar la entrada.
+    // Las señales de seguridad ocupan los espacios libres de los muros laterales.
     constexpr float signalSmallWidth=1.80f;
     constexpr float signalLargeWidth=3.375f;
     alphaPicture(s,signals[0],T(vec3(-7.80f,2.65f,.5f))*
@@ -645,7 +639,7 @@ void room(Shader&s) {
         ));
     }
 }
-// Conservamos el marco del padre antes de añadir el movimiento del hijo.
+// La matriz de cada pieza se conserva para reutilizarla en sus hijos.
 void apparatus(Shader&s) {
     std::map<std::string,mat4>world;
     for(auto&p:parts) {
@@ -711,7 +705,7 @@ void apparatus(Shader&s) {
             }
         }
         world[std::to_string(i)+n]=m;
-        // El agua se dibuja despues de las piezas opacas y antes del tanque.
+        // El agua se dibuja después de las piezas opacas y antes del tanque.
         if(i==3&&n=="glass")archimedesWater(s);
         bool transparent=(i==1&&(n=="solution"||n=="crystals"||
                                  n=="glass"||n=="stirrer"))||
@@ -747,7 +741,7 @@ void newtonExperiment(Shader&s,Shader&beamShader,const mat4&view,const mat4&proj
     const std::array<vec3,7>colors={vec3(.95,.03,.02),vec3(1,.25,.02),
         vec3(1,.78,.03),vec3(.05,.85,.15),vec3(.04,.35,1),
         vec3(.20,.08,.72),vec3(.58,.05,.92)};
-    // Pizarron mate sobre la pared posterior y soporte del prisma.
+    // El pizarrón mate y el soporte completan el montaje del prisma.
     block(s,{0,2.35,-10.84},{3.15,1.55,.055},{.88,.88,.84});
     block(s,prismCenter+vec3(0,-.02,0),{.78,.06,.58},{.10,.13,.14});
     block(s,inputStart+vec3(0,0,.13),{.34,.28,.32},{.055,.065,.07});
@@ -763,7 +757,7 @@ void newtonExperiment(Shader&s,Shader&beamShader,const mat4&view,const mat4&proj
     matrix(s,"model",T(prismCenter));
     prism->Draw(s);
     if(estadoPrisma!=PRISMA_APAGADO) {
-        // Los haces no reciben Phong: emiten color y usan mezcla aditiva.
+        // Los haces usan mezcla aditiva y no reciben iluminación Phong.
         beamShader.Use();
         matrix(beamShader,"view",view);
         matrix(beamShader,"projection",projection);
@@ -777,7 +771,7 @@ void newtonExperiment(Shader&s,Shader&beamShader,const mat4&view,const mat4&proj
             wideningBeam(beamShader,outputStart,glm::mix(outputStart,target,progress),
                          .04f+.31f*progress,colors[i],.62f);
         }
-        // Se vuelve al shader principal; la proyeccion queda a cargo de las luces.
+        // Se recupera el shader principal antes de continuar con la escena.
         s.Use();
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
         glUniform1i(glGetUniformLocation(s.Program,"transparency"),1);
@@ -788,7 +782,7 @@ void newtonExperiment(Shader&s,Shader&beamShader,const mat4&view,const mat4&proj
     glDepthMask(GL_TRUE);
     glUniform1i(glGetUniformLocation(s.Program,"transparency"),0);
 }
-// Restricción de navegación sencilla para no atravesar la envolvente del salón.
+// La cámara solo acepta posiciones dentro de los límites del salón.
 bool validCameraPosition(vec3 position) {
     constexpr float left=-7.59f,right=7.59f;
     constexpr float back=-10.66f,front=8.64f;
@@ -896,8 +890,7 @@ void key(GLFWwindow*w,int k,int,int action,int) {
         microscopeObjectiveTarget+=glm::radians(120.f);
     if(selected==4&&k==GLFW_KEY_F)microscopeFocusLow=!microscopeFocusLow;
     if(k==GLFW_KEY_E&&!cameraTraveling) {
-        // Si la ficha ya está arriba, E sólo la guarda. Para abrir una nueva,
-        // se consideran las mesas cercanas que realmente están frente a nosotros.
+        // E cierra la ficha actual o busca la mesa más cercana frente a la cámara.
         if(card) {
             card=false;
             return;
@@ -934,7 +927,7 @@ void mouse(GLFWwindow*w,double x,double y) {
     px=x;
     py=y;
 }
-// Luz general y cuatro fuentes interiores, usando el shader de la práctica 8.
+// Configura la iluminación general y las fuentes activas de cada experimento.
 void lights(Shader&s) {
     float roomLevel=1.f-.88f*oscuridadLaboratorio;
     uniform(s,"viewPos",camera.GetPosition());
@@ -965,7 +958,7 @@ void lights(Shader&s) {
     uniform(s,"spotLight.constant",1);
     uniform(s,"spotLight.linear",1.4);
     uniform(s,"spotLight.quadratic",2.8);
-    // La lampara nace debajo de la platina y apunta hacia la muestra.
+    // La lámpara nace debajo de la platina y apunta hacia la muestra.
     uniform(s,"spotLight.position",stations[4]+microscopeOffset+
             vec3(0,.43,.274f));
     uniform(s,"spotLight.cutOff",std::cos(glm::radians(16.f)));

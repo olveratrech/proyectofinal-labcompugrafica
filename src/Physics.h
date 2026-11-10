@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
 #include <cmath>
-// Código nuevo: los experimentos comparten un paso pequeño, independiente de los FPS.
+// Estado e integración numérica del péndulo doble con paso fijo.
 namespace lab  {
     using State=std::array<double,4>;
     template<class F> void rk4(State& y,double h,F f) {
