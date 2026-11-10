@@ -5,17 +5,10 @@ reúne siete estaciones didácticas para demostrar carga de modelos, texturizado
 transparencias, iluminación, shaders, transformaciones jerárquicas, cuadros clave,
 máquinas de estados y simulación numérica.
 
-El proyecto parte del código de las prácticas del Laboratorio de Computación
-Gráfica e Interacción Humano-Computadora y lo amplía con la escena, los experimentos,
-las animaciones y la interfaz de RenderLab.
-
 ## Documentación
 
 - [Documentación técnica y del proyecto](doc/esp/documentacion-esp.pdf)
 - [Manual de usuario](doc/esp/manual-usuario.pdf)
-
-Los dos manuales en PDF forman parte de la entrega académica. Los archivos fuente
-de LaTeX y sus auxiliares de compilación se mantienen fuera del control de versiones.
 
 ## Estaciones
 
@@ -41,10 +34,6 @@ de LaTeX y sus auxiliares de compilación se mantienen fuera del control de vers
 | Girar el revólver del microscopio 120 grados | `O` en la estación 5 |
 | Subir o bajar el enfoque del microscopio | `F` en la estación 5 |
 | Cerrar una ficha o salir del programa | `Esc` |
-
-La tecla `P` controla la ley de Hooke, la varilla de cristalización, el péndulo,
-el mecanismo de Arquímedes, el generador de Van de Graaff y el prisma. La acción
-depende de la estación seleccionada con las teclas numéricas.
 
 ## Compilación en macOS
 
@@ -118,7 +107,7 @@ assets/blender/   modelos editables de Blender
 assets/models/    piezas OBJ/MTL y manifiesto parts.txt
 assets/textures/  texturas horneadas y recursos del entorno
 assets/ui/        HUD, rótulos, fichas, carteles y señalización
-doc/              documentación, manual e imágenes
+doc/              documentación y manual
 shaders/          shaders de escena, interfaz, skybox y haces
 src/base/         clases procedentes de las prácticas
 src/              integración de la escena y simulación
