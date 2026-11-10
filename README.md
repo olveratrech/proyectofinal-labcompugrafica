@@ -90,10 +90,16 @@ Genera `dist/Laboratorio-linux/` y `dist/Laboratorio-linux.tar.gz`. La carpeta
 
 ## Windows
 
-La compilación de Windows utiliza CMake, vcpkg y Visual Studio Build Tools. Primero
-deben instalarse `glew:x64-windows`, `glfw3:x64-windows`, `glm:x64-windows` y
-`assimp:x64-windows`. Después se configura `VCPKG_ROOT` y se ejecutan los scripts
-desde PowerShell en la raíz del repositorio:
+El paquete portable se publica en
+[GitHub Releases](https://github.com/olveratrech/proyectofinal-labcompugrafica/releases/latest).
+Descarga `RenderLab-windows-x64.zip`, extráelo por completo y ejecuta
+`laboratorio.exe` sin separarlo de las DLL ni de las carpetas `assets` y `shaders`.
+Se requiere Windows 10/11 de 64 bits y una GPU compatible con OpenGL 3.3.
+
+Para compilarlo desde el código fuente se utilizan CMake, vcpkg y Visual Studio
+Build Tools. Primero deben instalarse `glew:x64-windows`, `glfw3:x64-windows`,
+`glm:x64-windows` y `assimp:x64-windows`. Después se configura `VCPKG_ROOT` y se
+ejecutan los scripts desde PowerShell en la raíz del repositorio:
 
 ```powershell
 $env:VCPKG_ROOT = "C:\vcpkg"
@@ -104,7 +110,8 @@ $env:VCPKG_ROOT = "C:\vcpkg"
 El empaquetado genera `dist/RenderLab-windows-x64/` y
 `dist/RenderLab-windows-x64.zip` con el ejecutable, las DLL de terceros, recursos,
 shaders, licencias y `LEEME.txt`. El generador `Visual Studio 18 2026` requiere
-CMake 4.2 o posterior; con Visual Studio 2022 puede omitirse `-Generator`.
+CMake 4.2 o posterior; con Visual Studio 2022 puede omitirse `-Generator`. Los
+paquetes generados no se almacenan en Git: se distribuyen mediante Releases.
 
 ## Estructura del repositorio
 
