@@ -9,6 +9,7 @@ máquinas de estados y simulación numérica.
 
 - [Documentación técnica y del proyecto](doc/esp/documentacion-esp.pdf)
 - [Manual de usuario](doc/esp/manual-usuario.pdf)
+- [Video demostrativo en YouTube](https://youtu.be/tM4SGBC2-oc)
 
 ## Estaciones
 
