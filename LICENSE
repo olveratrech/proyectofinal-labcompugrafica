@@ -1,14 +1,18 @@
-Aviso de derechos y procedencia
+Licencia académica de RenderLab
 
-Este repositorio es un proyecto académico. No se concede una licencia general
-sobre el código suministrado en las prácticas del curso, cuyos derechos y avisos
-originales se conservan. Su presencia aquí no implica permiso de redistribución
-por parte de sus autores.
+Copyright (c) 2026 Emmanuel Trejo Olvera
 
-El código y los recursos nuevos del proyecto se mantienen con todos los derechos
-reservados hasta que el titular decida una licencia. No se atribuye al profesor
-la autoría de las ampliaciones. Véase docs/PROCEDENCIA.md.
+Se permite consultar, ejecutar, estudiar y modificar el contenido original de
+RenderLab con fines educativos y no comerciales, siempre que se reconozca la
+autoría del proyecto y se conserve este aviso.
 
-stb_image conserva la licencia incluida en su propio archivo. GLFW, GLEW, GLM y
-Assimp son dependencias externas con sus respectivas licencias; no se incluyen
-sus fuentes en este repositorio.
+No se permite presentar el proyecto, sus modelos, recursos o documentación como
+trabajo propio, ni redistribuirlos con fines comerciales sin autorización expresa
+del autor.
+
+Esta licencia se aplica únicamente a las aportaciones originales de RenderLab. El
+código base proporcionado en las prácticas del curso, las bibliotecas externas y
+los recursos de terceros conservan sus respectivos derechos, avisos y licencias.
+
+El software se proporciona "tal cual", sin garantía de ningún tipo. El autor no
+será responsable por daños, pérdidas o problemas derivados de su uso.

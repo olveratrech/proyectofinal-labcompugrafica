@@ -6,18 +6,16 @@ transparencias, iluminación, shaders, transformaciones jerárquicas, cuadros cl
 máquinas de estados y simulación numérica.
 
 El proyecto parte del código de las prácticas del Laboratorio de Computación
-Gráfica e Interacción Humano-Computadora. La procedencia del código reutilizado y
-las ampliaciones realizadas se explican en
-[doc/PROCEDENCIA.md](doc/PROCEDENCIA.md).
+Gráfica e Interacción Humano-Computadora y lo amplía con la escena, los experimentos,
+las animaciones y la interfaz de RenderLab.
 
 ## Documentación
 
 - [Documentación técnica y del proyecto](doc/esp/documentacion-esp.pdf)
 - [Manual de usuario](doc/esp/manual-usuario.pdf)
-- [Fuente del manual de usuario](doc/esp/manual-usuario.tex)
 
-Los archivos PDF y LaTeX se distribuyen con la entrega académica, pero se mantienen
-fuera del control de versiones para evitar incorporar resultados de compilación.
+Los dos manuales en PDF forman parte de la entrega académica. Los archivos fuente
+de LaTeX y sus auxiliares de compilación se mantienen fuera del control de versiones.
 
 ## Estaciones
 
@@ -120,7 +118,7 @@ assets/blender/   modelos editables de Blender
 assets/models/    piezas OBJ/MTL y manifiesto parts.txt
 assets/textures/  texturas horneadas y recursos del entorno
 assets/ui/        HUD, rótulos, fichas, carteles y señalización
-doc/              procedencia, documentación, manual e imágenes
+doc/              documentación, manual e imágenes
 shaders/          shaders de escena, interfaz, skybox y haces
 src/base/         clases procedentes de las prácticas
 src/              integración de la escena y simulación
@@ -142,5 +140,4 @@ dinámicas, trazado de rayos ni refracción físicamente exacta.
 ## Licencia y recursos
 
 El código del proyecto se distribuye bajo los términos de [LICENSE](LICENSE). Los
-créditos y licencias de recursos externos se documentan en la memoria técnica y en
-[doc/PROCEDENCIA.md](doc/PROCEDENCIA.md).
+créditos y licencias de recursos externos se documentan en la memoria técnica.
