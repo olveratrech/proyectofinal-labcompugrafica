@@ -30,8 +30,20 @@ cmake --build build --config Release
 
 La ruta CMake se proporciona para portabilidad; la compilación comprobada es el
 script de macOS. En Linux, usa los scripts de la sección siguiente. Windows
-requiere sus paquetes correspondientes y todavía no se ha probado. No existe un
-ejecutable Windows verificado.
+usa CMake, vcpkg y Visual Studio 2022 Build Tools. Para compilar y crear un
+paquete portable x64, configura `VCPKG_ROOT` con la ruta de vcpkg y ejecuta en
+PowerShell desde la raíz:
+
+```powershell
+$env:VCPKG_ROOT = "C:\vcpkg"
+& .\tools\build_windows.ps1
+& .\tools\package_windows.ps1
+```
+
+El script requiere que estén instalados `glew:x64-windows`, `glfw3:x64-windows`,
+`glm:x64-windows` y `assimp:x64-windows`. La carpeta `dist/RenderLab-windows-x64/`
+y el archivo `dist/RenderLab-windows-x64.zip` contienen el ejecutable, las DLL
+de terceros, los recursos, los shaders, las licencias y `LEEME.txt`.
 
 ## Ejecutar y empaquetar en Linux
 
@@ -64,24 +76,16 @@ porque GLEW utiliza GLX.
 
 | Acción | Control |
 |---|---|
-| Caminar a altura fija | WASD |
-| Mirar | Mantener botón derecho y mover ratón |
-| Desplazarse a una estación | 1–7 |
-| Consultar / guardar ficha | E cerca de la mesa |
-| Cerrar ficha | E o Esc |
-| Iniciar / pausar demostraciones | Espacio |
-| Restablecer simulaciones | R |
-| Cambiar configuración | C |
-| Estirar / detener masa–resorte | P en la estación 1 |
-| Agitar / detener varilla de vidrio | P en la estación 2 |
-| Pausar / reanudar péndulo doble | P en la estación 3 |
-| Encender / detener Van de Graaff | P en la estación 6 |
-| Iniciar / apagar prisma de Newton | P en la estación 7 |
-| Encender / apagar microscopio | L en la estación 5 |
-| Cambiar objetivo 120° | O en la estación 5 |
-| Subir / bajar enfoque | F en la estación 5 |
-| Muestra ilustrativa del microscopio | M con su ficha abierta |
-| Salir | Esc fuera de una ficha |
+| Caminar | W, A, S, D |
+| Mirar mientras se mantiene presionado | Ratón derecho |
+| Viajar a una estación | 1 a 7 |
+| Abrir o cerrar la ficha cercana | E |
+| Reiniciar las simulaciones | R |
+| Activar o detener la demostración seleccionada | P |
+| Encender o apagar la luz del microscopio | L |
+| Girar 120 grados los objetivos del microscopio | O |
+| Subir o bajar el enfoque del microscopio | F |
+| Cerrar la ficha o salir | Esc |
 
 Los controles de simulación son globales. La cámara conserva una altura de caminata
 y los límites del salón impiden atravesar sus muros.
