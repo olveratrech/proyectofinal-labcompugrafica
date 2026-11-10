@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$VcpkgRoot = $env:VCPKG_ROOT,
-    [string]$BuildDir = "build-windows"
+    [string]$BuildDir = "build-windows",
+    [string]$Generator = "Visual Studio 17 2022"
 )
 
 $ErrorActionPreference = "Stop"
@@ -54,12 +55,12 @@ Write-Host "Configurando RenderLab para Windows x64..."
 & $CMakeCommand.Source `
     "-S" $Root `
     "-B" $BuildPath `
-    "-G" "Visual Studio 17 2022" `
+    "-G" $Generator `
     "-A" "x64" `
     "-DCMAKE_TOOLCHAIN_FILE=$ToolchainFile" `
     "-DVCPKG_TARGET_TRIPLET=x64-windows"
 if ($LASTEXITCODE -ne 0) {
-    Fail "La configuración de CMake falló. Verifica Visual Studio 2022 Build Tools y las dependencias de vcpkg."
+    Fail "La configuración de CMake falló. Verifica Visual Studio Build Tools, el generador seleccionado y las dependencias de vcpkg."
 }
 
 Write-Host "Compilando Release x64..."

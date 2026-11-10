@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$VcpkgRoot = $env:VCPKG_ROOT,
-    [string]$BuildDir = "build-windows"
+    [string]$BuildDir = "build-windows",
+    [string]$Generator = "Visual Studio 17 2022"
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,6 +50,8 @@ function Get-DumpbinPath {
     }
 
     $VsRoots = @(
+        (Join-Path ${env:ProgramFiles} "Microsoft Visual Studio\2026"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2026"),
         (Join-Path ${env:ProgramFiles} "Microsoft Visual Studio\2022"),
         (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2022")
     )
@@ -64,7 +67,7 @@ function Get-DumpbinPath {
         }
     }
 
-    Fail "No se encontró dumpbin.exe. Ejecuta este script desde herramientas de Visual Studio 2022 o instala Desktop development with C++."
+    Fail "No se encontró dumpbin.exe. Instala las herramientas de C++ de Visual Studio 2026/2022 (Desktop development with C++)."
 }
 
 function Get-DllDependencies([string]$Binary, [string]$DumpbinPath) {
@@ -158,7 +161,7 @@ if (-not (Test-Path -LiteralPath $BuildScript -PathType Leaf)) {
     Fail "No se encontró $BuildScript"
 }
 
-& $BuildScript -VcpkgRoot $VcpkgRoot -BuildDir $BuildDir
+& $BuildScript -VcpkgRoot $VcpkgRoot -BuildDir $BuildDir -Generator $Generator
 if ($LASTEXITCODE -ne 0) {
     Fail "La compilación de Windows falló."
 }
@@ -214,6 +217,8 @@ if ($env:VCToolsRedistDir) {
     }
 }
 foreach ($VsRoot in @(
+    (Join-Path ${env:ProgramFiles} "Microsoft Visual Studio\2026"),
+    (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2026"),
     (Join-Path ${env:ProgramFiles} "Microsoft Visual Studio\2022"),
     (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\2022")
 )) {

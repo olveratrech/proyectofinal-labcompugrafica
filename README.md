@@ -30,20 +30,22 @@ cmake --build build --config Release
 
 La ruta CMake se proporciona para portabilidad; la compilación comprobada es el
 script de macOS. En Linux, usa los scripts de la sección siguiente. Windows
-usa CMake, vcpkg y Visual Studio 2022 Build Tools. Para compilar y crear un
+usa CMake, vcpkg y Visual Studio Build Tools. Para compilar y crear un
 paquete portable x64, configura `VCPKG_ROOT` con la ruta de vcpkg y ejecuta en
 PowerShell desde la raíz:
 
 ```powershell
 $env:VCPKG_ROOT = "C:\vcpkg"
-& .\tools\build_windows.ps1
-& .\tools\package_windows.ps1
+& .\tools\build_windows.ps1 -Generator "Visual Studio 18 2026"
+& .\tools\package_windows.ps1 -Generator "Visual Studio 18 2026"
 ```
 
 El script requiere que estén instalados `glew:x64-windows`, `glfw3:x64-windows`,
 `glm:x64-windows` y `assimp:x64-windows`. La carpeta `dist/RenderLab-windows-x64/`
 y el archivo `dist/RenderLab-windows-x64.zip` contienen el ejecutable, las DLL
-de terceros, los recursos, los shaders, las licencias y `LEEME.txt`.
+de terceros, los recursos, los shaders, las licencias y `LEEME.txt`. Para usar
+el generador `Visual Studio 18 2026` se necesita CMake 4.2 o posterior; con
+Visual Studio 2022 se puede omitir `-Generator`.
 
 ## Ejecutar y empaquetar en Linux
 
