@@ -107,7 +107,7 @@ assets/blender/   modelos editables de Blender
 assets/models/    piezas OBJ/MTL y manifiesto parts.txt
 assets/textures/  texturas horneadas y recursos del entorno
 assets/ui/        HUD, rótulos, fichas, carteles y señalización
-doc/              documentación y manual
+doc/              documentación, manual e imagenes
 shaders/          shaders de escena, interfaz, skybox y haces
 src/base/         clases procedentes de las prácticas
 src/              integración de la escena y simulación
